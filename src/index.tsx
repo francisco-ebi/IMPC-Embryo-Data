@@ -4,6 +4,10 @@ import './index.css';
 import App from './components/App';
 import reportWebVitals from './reportWebVitals';
 
+(HTMLCanvasElement.prototype as any).getBBox = function () {
+  return { width: this.offsetWidth, height: this.offsetHeight };
+};
+
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
 );
