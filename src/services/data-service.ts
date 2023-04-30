@@ -1,6 +1,7 @@
 import jsonData from '../data/gene_phenotypes.json';
 import { HeatMapDatum } from '@nivo/heatmap';
 import { ChartData } from '../models/Charts';
+import { difference } from '../utils';
 
 interface PTAModel {
   marker_accession_id: string;
@@ -12,14 +13,6 @@ interface PTAModel {
   phenotype_terms: Array<{ mp_term_id: string, mp_term_name: string }>;
   phenotype_count: number;
   procedures: Array<string>;
-}
-
-function difference(setA: Set<string>, setB: Set<string>) {
-  const _difference = new Set(setA);
-  for (const elem of setB) {
-    _difference.delete(elem);
-  }
-  return _difference;
 }
 
 const pickName = (term: any) => term.top_level_mp_term_name;
@@ -51,22 +44,13 @@ class DataService {
   }
 
   getDataForChart(): ChartData {
-    const getAllMissingTermsForGene = (gene: any) => {
-      const phenotypeTermsNames = gene.topLevelPhenotypeTerms.map(pickName);
-      return Array.from(
-        difference(this.allTopLevelTerms, new Set(phenotypeTermsNames))
-      ).map(term => ({
-        x: term,
-        y: null
-      }));
-    }
     return Object.keys(this.genes).map(id => {
       const gene = this.genes[id];
       const data: HeatMapDatum[] = gene.topLevelPhenotypeTerms.map((term: any) => ({
         x: term.top_level_mp_term_name,
         y: term.count
       }));
-      data.push(...getAllMissingTermsForGene(gene));
+      data.push(...this.fillMissingTermsForGene(gene));
       return {
         id: gene.symbol,
         data,
@@ -74,7 +58,12 @@ class DataService {
     })
   }
 
-
+  private fillMissingTermsForGene = (gene: any) => {
+    const phenotypeTermsNames = gene.topLevelPhenotypeTerms.map(pickName);
+    return Array.from(
+      difference(this.allTopLevelTerms, new Set(phenotypeTermsNames))
+    ).map(term => ({ x: term, y: null }));
+  }
 
 };
 
