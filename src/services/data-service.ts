@@ -1,6 +1,7 @@
 import jsonData from '../data/gene_phenotypes.json';
 import { HeatMapDatum } from '@nivo/heatmap';
 import { ChartData } from '../models/Charts';
+import Gene from '../models/Gene';
 import { difference } from '../utils';
 
 interface PTAModel {
@@ -15,54 +16,80 @@ interface PTAModel {
   procedures: Array<string>;
 }
 
-const pickName = (term: any) => term.top_level_mp_term_name;
-
 class DataService {
 
-  genes: any = {};
+  genes: Record<string, Gene> = {};
   allTopLevelTerms = new Set<string>();
 
   constructor(data: Array<PTAModel>) {
+    let genesResult: Record<string, Gene> = {};
     data.forEach(association => {
-      if (!this.genes[association.marker_accession_id]) {
-        this.genes[association.marker_accession_id] = {
-          count: 0,
+      if (!genesResult[association.marker_symbol]) {
+        genesResult[association.marker_symbol] = {
+          totalCount: 0,
           id: association.marker_accession_id,
           symbol: association.marker_symbol,
           topLevelPhenotypeTerms: [],
         }
       }
-      const gene = this.genes[association.marker_accession_id];
+      const gene = genesResult[association.marker_symbol];
       gene.totalCount += association.phenotype_count;
-      gene.topLevelPhenotypeTerms.push({
-        ...association.top_level_phenotype_term,
+      const topLevelTerm = {
+        termId: association.top_level_phenotype_term.top_level_mp_term_id,
+        termName: association.top_level_phenotype_term.top_level_mp_term_name,
         count: association.phenotype_count,
-      });
-      this.allTopLevelTerms.add(association.top_level_phenotype_term.top_level_mp_term_name);
+      };
+      gene.topLevelPhenotypeTerms.push(topLevelTerm);
+      this.allTopLevelTerms.add(topLevelTerm.termName);
     });
-
+    const tempGenes = Object.values(genesResult);
+    tempGenes.sort((a, b) => b.totalCount - a.totalCount);
+    genesResult = {};
+    tempGenes.forEach(gene => genesResult[gene.symbol] = gene);
+    this.genes = {...genesResult};
   }
 
-  getDataForChart(): ChartData {
-    return Object.keys(this.genes).map(id => {
-      const gene = this.genes[id];
-      const data: HeatMapDatum[] = gene.topLevelPhenotypeTerms.map((term: any) => ({
-        x: term.top_level_mp_term_name,
-        y: term.count
-      }));
-      data.push(...this.fillMissingTermsForGene(gene));
-      return {
-        id: gene.symbol,
-        data,
+  getDataForChart(selectedTerms: Array<string>, selectedGenes: Array<string>): ChartData {
+    const result: ChartData = [];
+    const genes = selectedGenes.length ? this.getFilteredGenes(selectedGenes) : this.genes;
+    Object.values(genes).forEach(gene => {
+      if (selectedTerms.length === 0 || this.geneHasSelectedTerms(gene, selectedTerms)) {
+        const data: HeatMapDatum[] = gene.topLevelPhenotypeTerms.map(term => ({
+          x: term.termName,
+          y: term.count
+        }));
+        data.push(...this.fillMissingTermsForGene(gene));
+        result.push({ id: gene.symbol, data });
       }
-    })
+    });
+    return result;
   }
 
-  private fillMissingTermsForGene = (gene: any) => {
-    const phenotypeTermsNames = gene.topLevelPhenotypeTerms.map(pickName);
+  getAllTopLevelTerms(): Array<string> {
+    return Array.from(this.allTopLevelTerms);
+  }
+
+  getAllGeneNames(): Array<string> {
+    return Object.keys(this.genes);
+  }
+
+  private fillMissingTermsForGene(gene: Gene) {
+    const phenotypeTermsNames = gene.topLevelPhenotypeTerms.map(t => t.termName);
     return Array.from(
       difference(this.allTopLevelTerms, new Set(phenotypeTermsNames))
     ).map(term => ({ x: term, y: null }));
+  }
+
+  private geneHasSelectedTerms(gene: Gene, selectedTerms: Array<string>): boolean {
+    return gene.topLevelPhenotypeTerms
+              .map(term => term.termName)
+              .some(termName => selectedTerms.includes(termName));
+  }
+
+  private getFilteredGenes(selectedGenes: Array<string>): Record<string, Gene> {
+    const filteredGenes: Record<string, Gene> = {};
+    selectedGenes.forEach(gene => filteredGenes[gene] = this.genes[gene]);
+    return filteredGenes;
   }
 
 };

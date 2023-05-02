@@ -1,49 +1,52 @@
-import React, { useState, useEffect } from 'react';
-import { HeatMapCanvas } from '@nivo/heatmap';
+import React, { useState, useEffect, useRef } from 'react';
+import Container from '@mui/material/Container';
+import Chart from './Chart';
+import Filters from './Filters';
+import { ChartData } from '../models/Charts';
 import './App.css';
 import dataService from '../services/data-service';
-import { ChartData } from '../models/Charts';
+import useDebounce from '../utils/useDebounce';
 
 function App() {
+  const rangeRef = useRef<HTMLInputElement>(null);
   const [chartData, setChartData] = useState<ChartData>([]);
-  useEffect(() => {
-    setChartData(dataService.getDataForChart());
-  }, []);
+  const [topLevelTerms, setTopLevelTerms] = useState<Array<string>>([]);
+  const [geneNames, setGeneNames] = useState<Array<string>>([]);
+  const [selectedTerms, setSelectedTerms] = useState<Array<string>>([]);
+  const [selectedGenes, setSelectedGenes] = useState<Array<string>>([]);
+  const [topAssociation, setTopAssociations ] = useState<number>(90);
+  const debouncedTopAssociation = useDebounce<number>(topAssociation, 500);
 
-  console.log(chartData);
+  useEffect(() => {
+    setTopLevelTerms(dataService.getAllTopLevelTerms());
+    setGeneNames(dataService.getAllGeneNames());
+  }, [])
+
+
+  useEffect(() => {
+    setChartData(dataService.getDataForChart(selectedTerms, selectedGenes));
+  }, [selectedTerms, selectedGenes, debouncedTopAssociation]);
+
+
+  const updateAssociation = () => {
+    if (rangeRef.current) {
+      const val = parseInt(rangeRef.current.value, 10);
+      console.log(val);
+      setTopAssociations(val);
+    }
+  }
   return (
     <>
       <h1>IMPC Embryo data</h1>
-      <HeatMapCanvas
-        width={1400}
-        height={22000}
-        data={chartData}
-        margin={{ top: 150, right: 60, bottom: 20, left: 80 }}
-        xInnerPadding={0.15}
-        yInnerPadding={0.15}
-        emptyColor='#EEE'
-        colors={{
-          type: 'sequential',
-          scheme: 'blues',
-        }}
-        enableLabels={false}
-        axisTop={{
-          tickSize: 5,
-          tickPadding: 5,
-          tickRotation: -45,
-          legend: '',
-          legendOffset: 46
-        }}
-        axisRight={{
-          tickSize: 5,
-          tickPadding: 5,
-          tickRotation: 0,
-          legend: 'gene',
-          legendPosition: 'middle',
-          legendOffset: 40
-        }}
-        isInteractive={false}
-      />
+      <Container>
+          <Filters
+            geneNames={geneNames}
+            topLevelTerms={topLevelTerms}
+            onSelectGene={setSelectedGenes}
+            onSelectTerm={setSelectedTerms}
+          />
+        </Container>
+      <Chart chartData={chartData} />
     </>
   );
 }
