@@ -20,6 +20,8 @@ class DataService {
 
   genes: Map<string, Gene>;
   allTopLevelTerms = new Set<string>();
+  maxCount: number = 1;
+  minCount: number = 1000;
 
   constructor(data: Array<PTAModel>) {
     let genesResult: Record<string, Gene> = {};
@@ -40,6 +42,12 @@ class DataService {
         termName: association.top_level_phenotype_term.top_level_mp_term_name,
         count: association.phenotype_count,
       };
+      if (association.phenotype_count > this.maxCount) {
+        this.maxCount = association.phenotype_count;
+      }
+      if (association.phenotype_count < this.minCount) {
+        this.minCount = association.phenotype_count;
+      }
       gene.topLevelPhenotypeTerms.push(topLevelTerm);
       this.allTopLevelTerms.add(topLevelTerm.termName);
     });
@@ -74,7 +82,11 @@ class DataService {
   }
 
   getAllGeneNames(): Array<string> {
-    return Object.keys(this.genes);
+    return [...this.genes.keys()];
+  }
+
+  getMinAndMaxCount(): { max: number, min: number } {
+    return { max: this.maxCount, min: this.minCount };
   }
 
   private fillMissingTermsForGene(gene: Gene) {

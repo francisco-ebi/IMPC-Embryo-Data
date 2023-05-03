@@ -13,12 +13,13 @@ function App() {
   const [selectedTerms, setSelectedTerms] = useState<Array<string>>([]);
   const [selectedGenes, setSelectedGenes] = useState<Array<string>>([]);
   const [topAssociation, setTopAssociations] = useState<number>(90);
+  const [counts, setCounts] = useState({ max: 0, min: 0 });
 
   useEffect(() => {
     setTopLevelTerms(dataService.getAllTopLevelTerms());
     setGeneNames(dataService.getAllGeneNames());
-  }, [])
-
+    setCounts(dataService.getMinAndMaxCount());
+  }, []);
 
   useEffect(() => {
     setChartData(
@@ -38,7 +39,7 @@ function App() {
             onChangeAssociation={value => setTopAssociations(value)}
           />
         </Container>
-      <Chart chartData={chartData} />
+      <Chart chartData={chartData} counts={counts} />
     </>
   );
 }
