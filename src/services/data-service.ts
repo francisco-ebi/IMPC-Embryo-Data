@@ -18,11 +18,12 @@ interface PTAModel {
 
 class DataService {
 
-  genes: Record<string, Gene> = {};
+  genes: Map<string, Gene>;
   allTopLevelTerms = new Set<string>();
 
   constructor(data: Array<PTAModel>) {
     let genesResult: Record<string, Gene> = {};
+    const tempMap = new Map<string, Gene>();
     data.forEach(association => {
       if (!genesResult[association.marker_symbol]) {
         genesResult[association.marker_symbol] = {
@@ -44,15 +45,18 @@ class DataService {
     });
     const tempGenes = Object.values(genesResult);
     tempGenes.sort((a, b) => b.totalCount - a.totalCount);
-    genesResult = {};
-    tempGenes.forEach(gene => genesResult[gene.symbol] = gene);
-    this.genes = {...genesResult};
+    tempGenes.forEach(gene => tempMap.set(gene.symbol, gene));
+    this.genes = new Map(tempMap);
   }
 
-  getDataForChart(selectedTerms: Array<string>, selectedGenes: Array<string>): ChartData {
+  getDataForChart(selectedTerms: Array<string>, selectedGenes: Array<string>, topPercentage: number): ChartData {
     const result: ChartData = [];
     const genes = selectedGenes.length ? this.getFilteredGenes(selectedGenes) : this.genes;
-    Object.values(genes).forEach(gene => {
+    const numOfGenesToTake = (topPercentage / 100) * genes.size;
+    for(const [_, gene] of genes) {
+      if (result.length >= numOfGenesToTake) {
+        break;
+      }
       if (selectedTerms.length === 0 || this.geneHasSelectedTerms(gene, selectedTerms)) {
         const data: HeatMapDatum[] = gene.topLevelPhenotypeTerms.map(term => ({
           x: term.termName,
@@ -61,7 +65,7 @@ class DataService {
         data.push(...this.fillMissingTermsForGene(gene));
         result.push({ id: gene.symbol, data });
       }
-    });
+    }
     return result;
   }
 
@@ -86,12 +90,13 @@ class DataService {
               .some(termName => selectedTerms.includes(termName));
   }
 
-  private getFilteredGenes(selectedGenes: Array<string>): Record<string, Gene> {
-    const filteredGenes: Record<string, Gene> = {};
-    selectedGenes.forEach(gene => filteredGenes[gene] = this.genes[gene]);
+  private getFilteredGenes(selectedGenes: Array<string>): Map<string, Gene> {
+    const filteredGenes = new Map<string, Gene>();
+    selectedGenes.forEach(geneSymbol =>
+      filteredGenes.set(geneSymbol, this.genes.get(geneSymbol) as Gene)
+    );
     return filteredGenes;
   }
-
 };
 
 const service = new DataService(jsonData as Array<PTAModel>);
