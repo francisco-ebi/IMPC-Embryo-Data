@@ -41,6 +41,7 @@ class DataService {
         termId: association.top_level_phenotype_term.top_level_mp_term_id,
         termName: association.top_level_phenotype_term.top_level_mp_term_name,
         count: association.phenotype_count,
+        procedures: association.procedures,
       };
       if (association.phenotype_count > this.maxCount) {
         this.maxCount = association.phenotype_count;
@@ -87,6 +88,12 @@ class DataService {
 
   getMinAndMaxCount(): { max: number, min: number } {
     return { max: this.maxCount, min: this.minCount };
+  }
+
+  getProcedures(geneSymbol: string, termName: string) : Array<string> {
+    const gene = this.genes.get(geneSymbol) as Gene;
+    const pTerm = gene.topLevelPhenotypeTerms.find(term => term.termName === termName);
+    return pTerm ? pTerm.procedures : [];
   }
 
   private fillMissingTermsForGene(gene: Gene) {

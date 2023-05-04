@@ -1,10 +1,37 @@
-import { HeatMapCanvas } from '@nivo/heatmap';
+import { HeatMapCanvas, HeatMapDatum, ComputedCell } from '@nivo/heatmap';
 import { ChartData } from '../../models/Charts';
+import dataService from '../../services/data-service';
 
 interface ChartProps {
   chartData: ChartData,
   counts: { max: number, min: number }
 }
+
+interface CustomTooltipProps {
+  cell: ComputedCell<HeatMapDatum>;
+}
+
+const CustomTooltip = ({ cell }: CustomTooltipProps) => (
+  <div style={{
+    backgroundColor: '#fff',
+    color: '#000',
+    padding: '6px 9px',
+    borderRadius: '2px',
+    minWidth: '160px',
+    boxShadow: '0 3px 5px rgba(0, 0, 0, .25)',
+    whiteSpace: 'pre',
+  }}>
+    <span>
+      {cell.serieId} - {cell.data.x}: <b>{cell.formattedValue}</b>
+      <ul>
+        {dataService.getProcedures(cell.serieId, cell.data.x as string).map(procedure => (
+          <li>{procedure}</li>
+        ))}
+      </ul>
+    </span>
+  </div>
+)
+
 
 const Chart = ({ chartData, counts }: ChartProps) => {
   if (!chartData.length) {
@@ -41,6 +68,7 @@ const Chart = ({ chartData, counts }: ChartProps) => {
           tickPadding: 5,
           tickRotation: 0,
         }}
+        tooltip={CustomTooltip}
       />
       {restOfItems.map(item => (
         <HeatMapCanvas
@@ -65,6 +93,7 @@ const Chart = ({ chartData, counts }: ChartProps) => {
             tickPadding: 5,
             tickRotation: 0,
           }}
+          tooltip={CustomTooltip}
         />
       ))}
     </div>

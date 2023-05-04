@@ -6,5 +6,6 @@ export default interface Gene {
     termId: string;
     termName: string;
     count: number;
+    procedures: Array<string>
   }>;
 }
