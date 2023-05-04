@@ -96,6 +96,10 @@ class DataService {
     return pTerm ? pTerm.procedures : [];
   }
 
+  getGeneInfo(geneSymbol: string) : Gene {
+    return this.genes.get(geneSymbol) as Gene;
+  }
+
   private fillMissingTermsForGene(gene: Gene) {
     const phenotypeTermsNames = gene.topLevelPhenotypeTerms.map(t => t.termName);
     return Array.from(

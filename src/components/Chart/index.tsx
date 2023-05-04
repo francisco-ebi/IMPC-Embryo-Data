@@ -22,7 +22,14 @@ const CustomTooltip = ({ cell }: CustomTooltipProps) => (
     whiteSpace: 'pre',
   }}>
     <span>
-      {cell.serieId} - {cell.data.x}: <b>{cell.formattedValue}</b>
+      {cell.serieId} - {cell.data.x}: <b>{cell.formattedValue}</b><br />
+      <span>
+        MGI gene identifier: <b>{dataService.getGeneInfo(cell.serieId).id}</b>
+      </span>
+      <br />
+      { !!dataService.getProcedures(cell.serieId, cell.data.x as string).length && (
+        <span>Procedures: </span>
+      )}
       <ul>
         {dataService.getProcedures(cell.serieId, cell.data.x as string).map(procedure => (
           <li>{procedure}</li>
