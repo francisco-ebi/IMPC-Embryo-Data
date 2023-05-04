@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Container from '@mui/material/Container';
 import Chart from './Chart';
 import Filters from './Filters';
+import Introduction from './Introduction';
 import { ChartData } from '../models/Charts';
 import { FilterSelection, FilterData } from '../models/Filters';
 import './App.css';
@@ -32,18 +33,18 @@ function App() {
 
   return (
     <>
-      <h1>IMPC Embryo data</h1>
       <Container>
-          <Filters
-            geneNames={geneNames}
-            topLevelTerms={topLevelTerms}
-            selectedFilter={selectedFilter}
-            onSelectGene={setSelectedGenes}
-            onSelectTerm={setSelectedTerms}
-            onChangeAssociation={value => setTopAssociations(value)}
-            onChangeFilterSelection={value => setSelectedFilter(value)}
-          />
-        </Container>
+        <Introduction />
+        <Filters
+          geneNames={geneNames}
+          topLevelTerms={topLevelTerms}
+          selectedFilter={selectedFilter}
+          onSelectGene={setSelectedGenes}
+          onSelectTerm={setSelectedTerms}
+          onChangeAssociation={value => setTopAssociations(value)}
+          onChangeFilterSelection={value => setSelectedFilter(value)}
+        />
+      </Container>
       <Chart chartData={chartData} counts={counts} />
     </>
   );
