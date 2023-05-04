@@ -21,3 +21,7 @@ html, body, #root {
   flex-direction: column;
   align-items: center;
 }
+
+.input-autocomplete {
+  width: 100%;
+}

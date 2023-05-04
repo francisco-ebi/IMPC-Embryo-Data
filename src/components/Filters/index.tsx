@@ -8,33 +8,35 @@ import Checkbox from '@mui/material/Checkbox';
 import Stack from '@mui/material/Stack';
 
 import useDebounce from '../../utils/useDebounce';
+import { FilterSelection } from '../../models/Filters';
 
 interface FilterProps {
   geneNames: Array<string>;
   topLevelTerms: Array<string>;
+  selectedFilter: FilterSelection;
   onSelectGene: (newValue: Array<string>) => void;
   onSelectTerm: (newValue: Array<string>) => void;
   onChangeAssociation: (newValue: number) => void;
+  onChangeFilterSelection: (newValue: FilterSelection) => void;
 }
-
-type CheckboxSelection = 'genes' | 'term' | 'count';
 
 const Filters = ({
   geneNames,
   topLevelTerms,
+  selectedFilter,
   onSelectGene,
   onSelectTerm,
   onChangeAssociation,
+  onChangeFilterSelection,
 }: FilterProps) => {
 
   const [rangeValue, setRangeValue] = useState<number>(90);
   const debouncedRangeValue = useDebounce<number>(rangeValue, 500);
-  const [selectedCheckbox, setSelectedCheckbox] = useState<CheckboxSelection>('genes');
 
   useEffect(() => onChangeAssociation(debouncedRangeValue), [debouncedRangeValue]);
 
-  const updateSelection = (newSelection: CheckboxSelection) => {
-    setSelectedCheckbox(newSelection);
+  const updateSelection = (newSelection: FilterSelection) => {
+    onChangeFilterSelection(newSelection);
   }
 
   return (
@@ -43,12 +45,12 @@ const Filters = ({
         <Grid item xs={6}>
           <Stack direction="row" spacing={1}>
             <Checkbox
-              checked={selectedCheckbox === 'genes'}
+              checked={selectedFilter === 'genes'}
               onChange={() => updateSelection('genes')}
             />
             <Autocomplete
               className="input-autocomplete"
-              disabled={selectedCheckbox !== 'genes'}
+              disabled={selectedFilter !== 'genes'}
               multiple
               options={geneNames}
               onChange={(_, value) => onSelectGene(value)}
@@ -66,12 +68,12 @@ const Filters = ({
         <Grid item xs={6}>
           <Stack direction="row" spacing={1}>
             <Checkbox
-              checked={selectedCheckbox === 'term'}
+              checked={selectedFilter === 'term'}
               onChange={() => updateSelection('term')}
             />
             <Autocomplete
               className="input-autocomplete"
-              disabled={selectedCheckbox !== 'term'}
+              disabled={selectedFilter !== 'term'}
               multiple
               options={topLevelTerms}
               onChange={(_, value) => onSelectTerm(value)}
@@ -89,7 +91,7 @@ const Filters = ({
         <Grid item xs={6}>
           <Stack direction="row" spacing={1}>
             <Checkbox
-              checked={selectedCheckbox === 'count'}
+              checked={selectedFilter === 'count'}
               onChange={() => updateSelection('count')}
             />
             <div>
@@ -97,10 +99,10 @@ const Filters = ({
                 Filter top {rangeValue}% of the genes that have the highest phenotype count
               </Typography>
               <Slider
-                disabled={selectedCheckbox !== 'count'}
+                disabled={selectedFilter !== 'count'}
                 max={100}
-                min={10}
-                step={5}
+                min={1}
+                step={1}
                 value={rangeValue}
                 onChange={(_, value) => setRangeValue(value as number)}
               />

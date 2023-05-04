@@ -1,6 +1,7 @@
 import jsonData from '../data/gene_phenotypes.json';
 import { HeatMapDatum } from '@nivo/heatmap';
 import { ChartData } from '../models/Charts';
+import { FilterData, FilterSelection } from '../models/Filters';
 import Gene from '../models/Gene';
 import { difference } from '../utils';
 
@@ -58,24 +59,32 @@ class DataService {
     this.genes = new Map(tempMap);
   }
 
-  getDataForChart(selectedTerms: Array<string>, selectedGenes: Array<string>, topPercentage: number): ChartData {
-    const result: ChartData = [];
-    const genes = selectedGenes.length ? this.getFilteredGenes(selectedGenes) : this.genes;
-    const numOfGenesToTake = (topPercentage / 100) * genes.size;
-    for(const [_, gene] of genes) {
-      if (result.length >= numOfGenesToTake) {
-        break;
+  getDataForChart(
+    selectedFilter: FilterSelection,
+    selectedTerms: FilterData,
+    selectedGenes: FilterData,
+    topPercentage: number
+  ): ChartData {
+      const result: ChartData = [];
+      const genes = selectedFilter === 'genes' ? this.getFilteredGenes(selectedGenes) : this.genes;
+      const numOfGenesToTake = (topPercentage / 100) * genes.size;
+      for(const [_, gene] of genes) {
+        if (selectedFilter === 'count' && result.length >= numOfGenesToTake) {
+          break;
+        }
+        if (selectedFilter !== 'term' || this.geneHasSelectedTerms(gene, selectedTerms)) {
+          const data: HeatMapDatum[] = gene.topLevelPhenotypeTerms.map(term => ({
+            x: term.termName,
+            y: term.count
+          }));
+          data.push(...this.fillMissingTermsForGene(gene));
+          result.push({
+            id: gene.symbol,
+            data: data.sort((a, b) => (a.x as string).localeCompare(b.x as string))
+          });
+        }
       }
-      if (selectedTerms.length === 0 || this.geneHasSelectedTerms(gene, selectedTerms)) {
-        const data: HeatMapDatum[] = gene.topLevelPhenotypeTerms.map(term => ({
-          x: term.termName,
-          y: term.count
-        }));
-        data.push(...this.fillMissingTermsForGene(gene));
-        result.push({ id: gene.symbol, data });
-      }
-    }
-    return result;
+      return result;
   }
 
   getAllTopLevelTerms(): Array<string> {
@@ -108,12 +117,18 @@ class DataService {
   }
 
   private geneHasSelectedTerms(gene: Gene, selectedTerms: Array<string>): boolean {
+    if (selectedTerms.length === 0) {
+      return true;
+    }
     return gene.topLevelPhenotypeTerms
               .map(term => term.termName)
               .some(termName => selectedTerms.includes(termName));
   }
 
   private getFilteredGenes(selectedGenes: Array<string>): Map<string, Gene> {
+    if (selectedGenes.length === 0) {
+      return new Map<string, Gene>(this.genes);
+    }
     const filteredGenes = new Map<string, Gene>();
     selectedGenes.forEach(geneSymbol =>
       filteredGenes.set(geneSymbol, this.genes.get(geneSymbol) as Gene)
